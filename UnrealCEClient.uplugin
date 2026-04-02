@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "UnrealCEClient",
+	"Description": "Client for CalibrationEnv",
+	"Category": "Other",
+	"CreatedBy": "HKU-AXRLab",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UnrealCEClient",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
