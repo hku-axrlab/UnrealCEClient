@@ -7,12 +7,20 @@
 
 #include "WebSocketsModule.h" // Module definition
 #include "IWebSocket.h"       // Socket definition
+#include "ObjectMap.h"
+
+#include <string>
+#include <vector>
+
+#include "Structs.h"
+// Third party located directly in Source because sub-includes do not parse correctly otherwise  
+#include "nlohmann/json.hpp"  
 
 #include "Containers/UnrealString.h"
 #include "CalibEnvLinker.generated.h"
 
 UCLASS()
-class MYPROJECT_API ACalibEnvLinker : public AActor
+class UNREALCECLIENT_API ACalibEnvLinker : public AActor
 {
 	GENERATED_BODY()
 
@@ -34,10 +42,10 @@ public:
     int serverPort = 4196;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ObjectMap")
-    TMap<FString, UClass*> objectMap;
+    TObjectPtr<UObjectMap> objectMap;
 
     UPROPERTY(VisibleAnywhere, Category = "ObjectMap")
-    TMap<FString, AActor*> spawnedObjects;
+    TMap<FString, TObjectPtr<AActor>> spawnedObjects;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -61,7 +69,7 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "WebSocket")
     TMap<FString, FString> GetJsonMap() const;
-
+    
 private:
     TSharedPtr<IWebSocket> Socket;
 
@@ -72,4 +80,8 @@ private:
     void OnMessageHandler(const FString& Message);
     void OnConnectionErrorHandler(const FString& Error);
     void OnClosedHandler(int32 StatusCode, const FString& Reason, bool bWasClean);
+
+    SlotData ParseSlot(const nlohmann::json& slotResponse);
+    std::vector<SlotData> ParseBatchResponse(const std::string& jsonString);
+    void HandleSlotSpawning(const std::vector<SlotData>& slots);
 };
