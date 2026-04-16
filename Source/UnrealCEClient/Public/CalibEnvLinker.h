@@ -81,7 +81,7 @@ private:
     void OnConnectionErrorHandler(const FString& Error);
     void OnClosedHandler(int32 StatusCode, const FString& Reason, bool bWasClean);
 
-    SlotData ParseSlot(const nlohmann::json& slotResponse);
-    std::vector<SlotData> ParseBatchResponse(const std::string& jsonString);
-    void HandleSlotSpawning(const std::vector<SlotData>& slots);
+    ObjectData ParseObject(const nlohmann::json& slotResponse);
+    std::vector<ObjectData> ParseBatchResponse(const std::string& jsonString);
+    void HandleObjectSpawning(const std::vector<ObjectData>& slots);
 };

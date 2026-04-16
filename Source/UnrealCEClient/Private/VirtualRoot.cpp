@@ -2,8 +2,8 @@
 #include "Engine/Engine.h"
 
 TObjectPtr<AVirtualRoot> AVirtualRoot::instance = nullptr;
-FVector AVirtualRoot::proxyPosition;
-FQuat AVirtualRoot::proxyRotation;
+std::map<std::string, FVector> AVirtualRoot::proxyPositions;
+std::map<std::string, FQuat> AVirtualRoot::proxyRotations;
 
 // Sets default values
 AVirtualRoot::AVirtualRoot()
@@ -12,18 +12,32 @@ AVirtualRoot::AVirtualRoot()
 	instance = this;
 }
 
-FVector AVirtualRoot::TransformPosition(FVector position)
+FVector AVirtualRoot::TransformPosition(std::string home, FVector position)
 {
-	if (instance == nullptr) return position;
+	if (instance == nullptr || !proxyPositions.contains(home)) return position;
 
-	// todo implement
-	return position;
+	FQuat inverseProxy = proxyRotations[home].Inverse();
+    return instance->GetActorLocation() + 
+           instance->GetActorQuat() * inverseProxy * (position - proxyPositions[home]);
 }
 
-FQuat AVirtualRoot::TransformRotation(FQuat rotation)
+FQuat AVirtualRoot::TransformRotation(std::string home, FQuat rotation)
 {
-	if (instance == nullptr) return rotation;
+	if (instance == nullptr || !proxyRotations.contains(home)) return rotation;
 
-	// todo implement
-	return rotation;
+	return instance->GetActorQuat() * proxyRotations[home].Inverse() * rotation;
+}
+
+void AVirtualRoot::UpdateProxy(std::string home, FVector position, FQuat rotation)
+{
+	if (instance == nullptr) return;
+
+	if (proxyPositions.contains(home)) {
+		proxyPositions[home] = position;
+		proxyRotations[home] = rotation;
+	}
+	else {
+		proxyPositions.emplace(home, position);
+		proxyRotations.emplace(home, rotation);
+	}
 }

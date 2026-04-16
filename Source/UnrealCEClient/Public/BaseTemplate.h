@@ -27,35 +27,35 @@ public:
     UFUNCTION(BlueprintCallable, Category = "DataFunctions")
     FString ToString( const FMemberVariable& variable ) const
     {
-        return variable.value.get<std::string>().c_str();
+        return variable.value["value"].get<std::string>().c_str();
     }
 
     UFUNCTION(BlueprintCallable, Category = "DataFunctions")
     float ToFloat(const FMemberVariable& variable) const
     {
-        return variable.value.get<float>();
+        return variable.value["value"].get<float>();
     }
 
     UFUNCTION(BlueprintCallable, Category = "DataFunctions")
     int ToInt(const FMemberVariable& variable) const
     {
-        return variable.value.get<int>();
+        return variable.value["value"].get<int>();
     }
 
     UFUNCTION(BlueprintCallable, Category = "DataFunctions")
     bool ToBool(const FMemberVariable& variable) const
     {
-        return variable.value.get<bool>();
+        return variable.value["value"].get<bool>();
     }
 
     UFUNCTION(BlueprintCallable, Category = "DataFunctions")
     FLinearColor ToColor(const FMemberVariable& variable) const
     {
         FLinearColor c;
-        c.R = variable.value["r"].get<float>();
-        c.G = variable.value["g"].get<float>();
-        c.B = variable.value["b"].get<float>();
-        c.A = variable.value["a"].get<float>();
+        c.R = variable.value["value"]["r"].get<float>();
+        c.G = variable.value["value"]["g"].get<float>();
+        c.B = variable.value["value"]["b"].get<float>();
+        c.A = variable.value["value"]["a"].get<float>();
         return c;
     }
 
@@ -63,9 +63,9 @@ public:
     FVector ToVector(const FMemberVariable& variable) const
     {
         FVector v;
-        v.X = variable.value["x"].get<float>();
-        v.Y = variable.value["y"].get<float>();
-        v.Z = variable.value["z"].get<float>();
+        v.X = variable.value["value"]["x"].get<float>();
+        v.Y = variable.value["value"]["y"].get<float>();
+        v.Z = variable.value["value"]["z"].get<float>();
         return v;
     }
 

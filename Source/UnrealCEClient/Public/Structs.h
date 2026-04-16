@@ -10,10 +10,11 @@ struct Transform
     float sx, sy, sz;     // scale
 };
 
-struct SlotData
+struct ObjectData
 {
     std::string id;
     std::string name;
+    std::string home;
     std::string tag;
     Transform transform;
     std::vector<FMemberVariable> variables;

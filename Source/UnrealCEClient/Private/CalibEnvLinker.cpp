@@ -11,88 +11,75 @@
 
 using json = nlohmann::json;
 
-SlotData ACalibEnvLinker::ParseSlot(const json& slotResponse)
+ObjectData ACalibEnvLinker::ParseObject(const json& objectJson)
 {
-    SlotData slot;
-    const auto& data = slotResponse["data"];
+    ObjectData slot;
 
     // ID comes from the slot-level id field
-    slot.id = data["id"].get<std::string>();
+    slot.id = objectJson["id"].get<std::string>();
 
     // Name and tag are nested under data, each with a "value" field
-    slot.name = data["name"]["value"].get<std::string>();
-    slot.tag = data["tag"]["value"].is_null() ? "" : data["tag"]["value"].get<std::string>();
+    slot.name = objectJson["name"].get<std::string>();
+    slot.tag = objectJson["tag"].is_null() ? "" : objectJson["tag"].get<std::string>();
+    slot.home = objectJson["home"].get<std::string>();
+    
+    const auto& transform = objectJson["transform"];
 
     // Position
-    const auto& pos = data["position"]["value"];
-    slot.transform.x = pos["x"].get<float>();
-    slot.transform.y = pos["y"].get<float>();
-    slot.transform.z = pos["z"].get<float>();
+    const auto& pos = transform["position"];
+    slot.transform.x = pos["X"].get<float>();
+    slot.transform.y = pos["Y"].get<float>();
+    slot.transform.z = pos["Z"].get<float>();
 
     // Rotation (quaternion)
-    const auto& rot = data["rotation"]["value"];
-    slot.transform.qx = rot["x"].get<float>();
-    slot.transform.qy = rot["y"].get<float>();
-    slot.transform.qz = rot["z"].get<float>();
-    slot.transform.qw = rot["w"].get<float>();
+    const auto& rot = transform["rotation"];
+    slot.transform.qx = rot["X"].get<float>();
+    slot.transform.qy = rot["Y"].get<float>();
+    slot.transform.qz = rot["Z"].get<float>();
+    slot.transform.qw = rot["W"].get<float>();
 
     // Scale
-    const auto& scl = data["scale"]["value"];
-    slot.transform.sx = scl["x"].get<float>();
-    slot.transform.sy = scl["y"].get<float>();
-    slot.transform.sz = scl["z"].get<float>();
+    const auto& scl = transform["scale"];
+    slot.transform.sx = scl["X"].get<float>();
+    slot.transform.sy = scl["Y"].get<float>();
+    slot.transform.sz = scl["Z"].get<float>();
 
-    for (const auto& component : data["components"]) {
-        if (component["componentType"].get<std::string>().find("DynamicValueVariable\u003C") != std::string::npos) {
-            std::string type = component["componentType"].get<std::string>();
-            FMemberVariable v;
-            for (const auto& [mKey, mVal] : component["members"].items()) {
-                if (mKey == "VariableName") {
-                    v.name = mVal["value"].get<std::string>().c_str();
-                }
-                if (mKey == "Value") {
-                    v.type = mVal["$type"].get<std::string>().c_str();
-                    v.value = mVal["value"];
-                }
-            }
-            slot.variables.push_back(v);
-        }
+    for (const auto& variable : objectJson["data"]) {
+        std::string type = variable["type"].get<std::string>();
+        FMemberVariable v;
+        v.name = variable["name"].get<std::string>().c_str();
+        v.type = variable["type"].get<std::string>().c_str();
+        v.value = variable["value"];
+        slot.variables.push_back(v);
     }
 
     return slot;
 }
 
-std::vector<SlotData> ACalibEnvLinker::ParseBatchResponse(const std::string& jsonString)
+std::vector<ObjectData> ACalibEnvLinker::ParseBatchResponse(const std::string& jsonString)
 {
-    std::vector<SlotData> slots;
+    std::vector<ObjectData> objects;
 
     json root = json::parse(jsonString);
-    if (root["responses"].is_null()) return slots;
+    if (root["objects"].is_null()) return objects;
 
-    for (const auto& response : root["responses"])
+    for (const auto& objJson : root["objects"])
     {
-        // Skip any responses that aren't slotData
-        if (response["$type"] == "slotData")
-            slots.push_back(ParseSlot(response));
+       objects.push_back(ParseObject(objJson));
     }
 
-    return slots;
+    return objects;
 }
 
-void ACalibEnvLinker::HandleSlotSpawning(const std::vector<SlotData>& slots)
+void ACalibEnvLinker::HandleObjectSpawning(const std::vector<ObjectData>& slots)
 {
     for (auto slot : slots)
     {
         if (slot.tag == "vRoot")
         {
-            AVirtualRoot::proxyPosition.X = slot.transform.x;
-            AVirtualRoot::proxyPosition.Y = slot.transform.y;
-            AVirtualRoot::proxyPosition.Z = slot.transform.z;
-
-            AVirtualRoot::proxyRotation.X = slot.transform.qx;
-            AVirtualRoot::proxyRotation.Y = slot.transform.qy;
-            AVirtualRoot::proxyRotation.Z = slot.transform.qz;
-            AVirtualRoot::proxyRotation.W = slot.transform.qw;
+            AVirtualRoot::UpdateProxy(slot.home, 
+                FVector(-slot.transform.x * 100.0f, slot.transform.z * 100.0f, slot.transform.y * 100.0f), 
+                FQuat(-slot.transform.qx, slot.transform.qz, slot.transform.qy, slot.transform.qw));
         }
         else
         {
@@ -113,7 +100,7 @@ void ACalibEnvLinker::HandleSlotSpawning(const std::vector<SlotData>& slots)
             TObjectPtr<AActor> actor = spawnedObjects[id];
 
             FVector position(-slot.transform.x * 100.0f, slot.transform.z * 100.0f, slot.transform.y * 100.0f);
-            FQuat rotation(slot.transform.qx, slot.transform.qz, slot.transform.qy, -slot.transform.qw);
+            FQuat rotation(-slot.transform.qx, slot.transform.qz, slot.transform.qy, slot.transform.qw);
             FVector scale(slot.transform.sx, slot.transform.sz, slot.transform.sy);
             
             if (actor) {
@@ -129,7 +116,7 @@ void ACalibEnvLinker::HandleSlotSpawning(const std::vector<SlotData>& slots)
                 }
 
                 if (baseActor == nullptr || baseActor->isLive) {
-                    actor->SetActorLocationAndRotation(AVirtualRoot::TransformPosition(position), AVirtualRoot::TransformRotation(rotation));
+                    actor->SetActorLocationAndRotation(AVirtualRoot::TransformPosition(slot.home, position), AVirtualRoot::TransformRotation(slot.home, rotation));
                     actor->SetActorScale3D(scale);
                 }
             }
@@ -248,8 +235,8 @@ void ACalibEnvLinker::OnMessageHandler(const FString& Message)
 
     try
     {
-        std::vector<SlotData> slotsFound = ParseBatchResponse(TCHAR_TO_UTF8(*Message));
-        HandleSlotSpawning(slotsFound);
+        std::vector<ObjectData> slotsFound = ParseBatchResponse(TCHAR_TO_UTF8(*Message));
+        HandleObjectSpawning(slotsFound);
     }
     catch (const json::parse_error& e)
     {
