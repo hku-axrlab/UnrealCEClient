@@ -14,7 +14,10 @@ AVirtualRoot::AVirtualRoot()
 
 FVector AVirtualRoot::TransformPosition(std::string home, FVector position)
 {
-	if (instance == nullptr || !proxyPositions.contains(home)) return position;
+	if (instance == nullptr ) return position;
+	else if ( !proxyPositions.contains(home) )
+		return instance->GetActorLocation() + 
+           instance->GetActorQuat() * position;
 
 	FQuat inverseProxy = proxyRotations[home].Inverse();
     return instance->GetActorLocation() + 
@@ -23,7 +26,9 @@ FVector AVirtualRoot::TransformPosition(std::string home, FVector position)
 
 FQuat AVirtualRoot::TransformRotation(std::string home, FQuat rotation)
 {
-	if (instance == nullptr || !proxyRotations.contains(home)) return rotation;
+	if (instance == nullptr) return rotation;
+	else if (!proxyRotations.contains(home))
+		instance->GetActorQuat() * rotation;
 
 	return instance->GetActorQuat() * proxyRotations[home].Inverse() * rotation;
 }
